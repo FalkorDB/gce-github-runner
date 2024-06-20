@@ -193,7 +193,9 @@ function start_vm {
   echo "The new GCE VM will be ${VM_ID}"
 
   startup_script="
-  $(cat ${ACTION_DIR}/install_docker.sh) >> /etc/install_docker.sh
+  cat <<-EOF > /etc/install_docker.sh
+  $(cat ${ACTION_DIR}/install_docker.sh)
+  EOF
 
 	# Create a systemd service in charge of shutting down the machine once the workflow has finished
 	cat <<-EOF > /etc/systemd/system/shutdown.sh
