@@ -171,11 +171,11 @@ function start_vm {
 
   RUNNER_TOKEN=$(curl -S -s -XPOST \
       -H "authorization: Bearer ${token}" \
-      https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runners/registration-token |\
+      "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runners/registration-token" |\
       jq -r .token)
   echo "✅ Successfully got the GitHub Runner registration token"
 
-  VM_ID="gce-gh-runner-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+  VM_ID="gce-gh-${GITHUB_JOB}"
   service_account_flag=$([[ -z "${runner_service_account}" ]] || echo "--service-account=${runner_service_account}")
   image_project_flag=$([[ -z "${image_project}" ]] || echo "--image-project=${image_project}")
   image_flag=$([[ -z "${image}" ]] || echo "--image=${image}")
