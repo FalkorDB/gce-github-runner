@@ -90,8 +90,8 @@ inputs:
     description: "Whether the GitHub actions have already been installed at `/actions-runner`."
     default: false
     required: true
-  runner_labels:
-    description: "Comma separated list of labels to assign to the runner."
+  runner_label:
+    description: "Override the runner label and set it to something specific(defaults to VM_ID)"
     required: false
   arm:
     description: "Whether the GitHub actions should use arm64 binaries."
@@ -107,10 +107,10 @@ outputs:
     description: >-
       Unique runner ID. This ID can be used to remove the runner after the workflow job.
     value: ${{ steps.gce-github-runner-script.outputs.runner_id }}
-  runner_labels:
+  runner_label:
     description: >-
-      Comma-separated list of labels assigned to the runner.
-    value: ${{ steps.gce-github-runner-script.outputs.runner_labels }}
+      Unique runner label. This label can be used to run jobs on this specific runner
+    value: ${{ steps.gce-github-runner-script.outputs.runner_label }}
 runs:
   using: "composite"
   steps:
@@ -131,7 +131,7 @@ runs:
         --scopes=${{ inputs.scopes }}
         --shutdown_timeout=${{ inputs.shutdown_timeout }}
         --runner_service_account=${{ inputs.runner_service_account }}
-        --runner_labels=${{ inputs.runner_labels }}
+        --runner_label=${{ inputs.runner_label }}
         --image_project=${{ inputs.image_project }}
         --image=${{ inputs.image }}
         --image_family=${{ inputs.image_family }}

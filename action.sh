@@ -26,7 +26,7 @@ machine_type=
 boot_disk_type=
 disk_size=
 runner_service_account=
-runner_labels=
+runner_label=
 image_project=
 image=
 image_family=
@@ -54,7 +54,7 @@ while getopts_long :h opt \
   boot_disk_type optional_argument \
   disk_size optional_argument \
   runner_service_account optional_argument \
-  runner_labels optional_argument \
+  runner_label optional_argument \
   image_project optional_argument \
   image optional_argument \
   image_family optional_argument \
@@ -102,8 +102,8 @@ do
     runner_service_account)
       runner_service_account=${OPTLARG-$runner_service_account}
       ;;
-    runner_labels)
-      runner_labels=${OPTLARG-$runner_labels}
+    runner_label)
+      runner_label=${OPTLARG-$runner_label}
       ;;
     image_project)
       image_project=${OPTLARG-$image_project}
@@ -196,13 +196,8 @@ function start_vm {
   maintenance_policy_flag=$([[ -z "${maintenance_policy_terminate}"  ]] || echo "--maintenance-policy=TERMINATE" )
 
   echo "The new GCE VM will be ${VM_ID}"
-
-  # Remove trailing comma
-  runner_labels=${runner_labels%,}
-  # If the runner_labels var is empty, do nothing, otherwise, add a trailing comma
-  [[ -z "$runner_labels" ]] || runner_labels="${runner_labels},"
-  github_runner_labels="${runner_labels}${VM_ID}"
-  echo "Labels to be assigned to the Github Runner: ${github_runner_labels}"
+  [[ -z "$runner_label" ]] || runner_label=$VM_ID
+  echo "Unique Github Runner label: ${runner_label}"
 
   startup_script="
   cat <<-EOF > /etc/install_docker.sh
@@ -239,7 +234,7 @@ function start_vm {
 	# See: https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/running-scripts-before-or-after-a-job
 	echo "ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/usr/bin/gce_runner_shutdown.sh" >.env
 	chmod +x /etc/install_docker.sh && /etc/install_docker.sh && gcloud compute instances add-labels ${VM_ID} --zone=${machine_zone} --labels=gh_ready=0 && \\
-	RUNNER_ALLOW_RUNASROOT=1 ./config.sh --url https://github.com/${GITHUB_REPOSITORY} --token ${RUNNER_TOKEN} --labels ${github_runner_labels} --unattended ${ephemeral_flag} --disableupdate && \\
+	RUNNER_ALLOW_RUNASROOT=1 ./config.sh --url https://github.com/${GITHUB_REPOSITORY} --token ${RUNNER_TOKEN} --labels ${runner_label} --unattended ${ephemeral_flag} --disableupdate && \\
 	./svc.sh install && \\
 	./svc.sh start && \\
 	gcloud compute instances add-labels ${VM_ID} --zone=${machine_zone} --labels=gh_ready=1
@@ -321,7 +316,7 @@ function start_vm {
     ${maintenance_policy_flag} \
     --labels=gh_ready=0,gh_repo_owner="${gh_repo_owner}",gh_repo="${gh_repo}",gh_run_id="${gh_run_id}" \
     --metadata=startup-script="$startup_script" \
-    && echo "runner_id=${VM_ID}" >> $GITHUB_OUTPUT && echo "runner_labels=${github_runner_labels}" >> $GITHUB_OUTPUT
+    && echo "runner_id=${VM_ID}" >> $GITHUB_OUTPUT && echo "runner_label=${runner_label}" >> $GITHUB_OUTPUT
 
   safety_off
   while (( i++ < 60 )); do
