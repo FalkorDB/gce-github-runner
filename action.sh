@@ -195,8 +195,10 @@ function start_vm {
   accelerator=$([[ ! -z "${accelerator}"  ]] && echo "--accelerator=${accelerator} --maintenance-policy=TERMINATE" || echo "")
   maintenance_policy_flag=$([[ -z "${maintenance_policy_terminate}"  ]] || echo "--maintenance-policy=TERMINATE" )
 
-  echo "The new GCE VM will be ${VM_ID}"
-  [[ -z "$runner_label" ]] || runner_label=$VM_ID
+  echo "The new GCE VM ID will be ${VM_ID}"
+  if [[ -z "$runner_label" ]]; then
+    runner_label=$VM_ID
+  fi
   echo "Unique Github Runner label: ${runner_label}"
 
   startup_script="
