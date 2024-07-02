@@ -238,7 +238,7 @@ function start_vm {
 	# See: https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/running-scripts-before-or-after-a-job
 	echo "ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/usr/bin/gce_runner_shutdown.sh" >.env
 	chmod +x /etc/install_docker.sh && /etc/install_docker.sh && gcloud compute instances add-labels ${VM_ID} --zone=${machine_zone} --labels=gh_ready=0 && \\
-	RUNNER_ALLOW_RUNASROOT=1 ./config.sh --url https://github.com/${GITHUB_REPOSITORY} --token ${RUNNER_TOKEN} --labels ${runner_labels}${VM_ID} --unattended ${ephemeral_flag} --disableupdate && \\
+	RUNNER_ALLOW_RUNASROOT=1 ./config.sh --url https://github.com/${GITHUB_REPOSITORY} --token **** --labels ${runner_labels}${VM_ID} --unattended ${ephemeral_flag} --disableupdate && \\
 	./svc.sh install && \\
 	./svc.sh start && \\
 	gcloud compute instances add-labels ${VM_ID} --zone=${machine_zone} --labels=gh_ready=1
@@ -276,6 +276,9 @@ function start_vm {
       $startup_script"
     fi
   fi
+
+
+  echo "Startup Script: \n ${startup_script} \n \n"
   
   # GCE VM label values requirements:
   # - can contain only lowercase letters, numeric characters, underscores, and dashes
