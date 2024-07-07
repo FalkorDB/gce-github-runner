@@ -218,12 +218,11 @@ function start_vm {
 	[Unit]
 	Description=Shutdown service
 	[Service]
-	ExecStart=/etc/systemd/system/shutdown.sh
+	ExecStart=bash /etc/systemd/system/shutdown.sh
 	[Install]
 	WantedBy=multi-user.target
 	EOF
 
-	chmod +x /etc/systemd/system/shutdown.sh
 	systemctl daemon-reload
 	systemctl enable shutdown.service
 
