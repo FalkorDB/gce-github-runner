@@ -212,6 +212,7 @@ function start_vm {
 	sleep ${shutdown_timeout}
 	gcloud compute instances delete $VM_ID --zone=$machine_zone --quiet
 	EOF
+ 
 
 	cat <<-EOF > /etc/systemd/system/shutdown.service
 	[Unit]
@@ -232,6 +233,8 @@ function start_vm {
 	# We tear down the machine by starting the systemd service that was registered by the startup script
 	systemctl start shutdown.service
 	EOF
+ 
+	chmod +x /usr/bin/gce_runner_shutdown.sh
 
 	# See: https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/running-scripts-before-or-after-a-job
 	echo "ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/usr/bin/gce_runner_shutdown.sh" >.env
