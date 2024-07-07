@@ -232,11 +232,9 @@ function start_vm {
 	# We tear down the machine by starting the systemd service that was registered by the startup script
 	systemctl start shutdown.service
 	EOF
- 
-	chmod +x /usr/bin/gce_runner_shutdown.sh
 
 	# See: https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/running-scripts-before-or-after-a-job
-	echo "ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/usr/bin/gce_runner_shutdown.sh" >.env
+	echo \"ACTIONS_RUNNER_HOOK_JOB_COMPLETED='bash /usr/bin/gce_runner_shutdown.sh'\" >.env
 	chmod +x /etc/install_docker.sh && /etc/install_docker.sh && gcloud compute instances add-labels ${VM_ID} --zone=${machine_zone} --labels=gh_ready=0 && \\
 	RUNNER_ALLOW_RUNASROOT=1 ./config.sh --url https://github.com/${GITHUB_REPOSITORY} --token ${RUNNER_TOKEN} --labels ${runner_label} --unattended ${ephemeral_flag} --disableupdate && \\
 	./svc.sh install && \\
