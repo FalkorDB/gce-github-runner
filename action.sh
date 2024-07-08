@@ -232,7 +232,6 @@ function start_vm {
 	./svc.sh install && \\
 	./svc.sh start && \\
 	gcloud compute instances add-labels ${VM_ID} --zone=${machine_zone} --labels=gh_ready=1
-	gcloud compute instances add-labels ${VM_ID} --zone=${machine_zone} --labels=${runner_label}
 	# Kill after 12 hours
 	nohup sh -c \"sleep 6h && gcloud --quiet compute instances delete ${VM_ID} --zone=${machine_zone}\" > /dev/null &
   "
@@ -309,7 +308,7 @@ function start_vm {
     ${subnet_flag} \
     ${accelerator} \
     ${maintenance_policy_flag} \
-    --labels=gh_ready=0,gh_repo_owner="${gh_repo_owner}",gh_repo="${gh_repo}",gh_run_id="${gh_run_id}" \
+    --labels=gh_ready=0,gh_repo_owner="${gh_repo_owner}",gh_repo="${gh_repo}",gh_run_id="${gh_run_id}",${runner_label}=1 \
     --metadata=startup-script="$startup_script" \
     && echo "runner_id=${VM_ID}" >> $GITHUB_OUTPUT && echo "runner_label=${runner_label}" >> $GITHUB_OUTPUT
 
