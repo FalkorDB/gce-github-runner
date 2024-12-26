@@ -219,7 +219,6 @@ function start_vm {
 	Description=Shutdown service
 	[Service]
 	ExecStart=bash /etc/systemd/system/shutdown.sh
- 	User=root
 	[Install]
 	WantedBy=multi-user.target
 	EOF
@@ -231,6 +230,7 @@ function start_vm {
 	chmod +x /etc/install_docker.sh && /etc/install_docker.sh && gcloud compute instances add-labels ${VM_ID} --zone=${machine_zone} --labels=gh_ready=0 && \\
 	RUNNER_ALLOW_RUNASROOT=1 ./config.sh --url https://github.com/${GITHUB_REPOSITORY} --token ${RUNNER_TOKEN} --labels ${runner_label} --unattended ${ephemeral_flag} --disableupdate && \\
 	./svc.sh install && \\
+ 	sed -i 's/ExecStart=\/actions-runner\/runsvc.sh/ExecStart=\/bin\/bash \/actions-runner\/runsvc.sh/g' /etc/systemd/system/actions.runner.FalkorDB-FalkorDB.${runner_label} && \\
 	./svc.sh start && \\
 	gcloud compute instances add-labels ${VM_ID} --zone=${machine_zone} --labels=gh_ready=1
 	# Kill after 12 hours
