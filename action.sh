@@ -202,9 +202,9 @@ function start_vm {
   echo "Unique Github Runner label: ${runner_label}"
 
   startup_script="
-  cat <<-EOF > /etc/install_docker.sh
-  $(cat ${ACTION_DIR}/install_docker.sh)
-  EOF
+	cat <<-EOF > /etc/install_docker.sh
+	$(cat ${ACTION_DIR}/install_docker.sh)
+	EOF
 
 	# Create a systemd service in charge of shutting down the machine once the workflow has finished
 	cat <<-EOF > /etc/systemd/system/shutdown.sh
