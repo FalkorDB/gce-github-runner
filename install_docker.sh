@@ -9,6 +9,8 @@ if [[ "$os_type" == *"centos"* ]] || [[ "$os_type" == *"rhel"* ]]; then
 
   # Update the package list and install Docker
   dnf -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  
+  systemctl enable --now docker
 else
   # Add Docker's official GPG key
   apt-get update
