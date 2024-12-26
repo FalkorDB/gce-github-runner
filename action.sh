@@ -219,6 +219,7 @@ function start_vm {
 	Description=Shutdown service
 	[Service]
 	ExecStart=bash /etc/systemd/system/shutdown.sh
+ 	User=root
 	[Install]
 	WantedBy=multi-user.target
 	EOF
