@@ -1,8 +1,6 @@
 #!/bin/bash
 
-os_type=$(grep ^ID= /etc/os-release | cut -d= -f2)
-
-if [[ "$os_type" == *"centos"* ]] || [[ "$os_type" == *"rhel"* ]]; then
+if [[ "$(grep ^ID= /etc/os-release | cut -d= -f2)" == *"centos"* ]] || [[ "$(grep ^ID= /etc/os-release | cut -d= -f2)" == *"rhel"* ]]; then
  # Install dnf utils
   dnf -y install dnf-plugins-core
   dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
