@@ -230,7 +230,7 @@ function start_vm {
 	chmod +x /etc/install_docker.sh && /etc/install_docker.sh && gcloud compute instances add-labels ${VM_ID} --zone=${machine_zone} --labels=gh_ready=0 && \\
 	RUNNER_ALLOW_RUNASROOT=1 ./config.sh --url https://github.com/${GITHUB_REPOSITORY} --token ${RUNNER_TOKEN} --labels ${runner_label} --unattended ${ephemeral_flag} --disableupdate && \\
 	./svc.sh install && \\
- 	sed -i 's/ExecStart=\/actions-runner\/runsvc.sh/ExecStart=\/bin\/bash \/actions-runner\/runsvc.sh/g' $(ls /etc/systemd/system/ | grep actions.runner.FalkorDB) && \\
+ 	sed -i 's/ExecStart=\/actions-runner\/runsvc.sh/ExecStart=\/bin\/bash \/actions-runner\/runsvc.sh/g' \$(ls /etc/systemd/system/ | grep actions.runner.FalkorDB) && \\
 	./svc.sh start && \\
 	gcloud compute instances add-labels ${VM_ID} --zone=${machine_zone} --labels=gh_ready=1
 	# Kill after 12 hours
