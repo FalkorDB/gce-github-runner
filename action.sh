@@ -262,7 +262,10 @@ function start_vm {
       startup_script="#!/bin/bash
       mkdir /actions-runner
       cd /actions-runner
-	  ip route replace default via \$(ip route show default | awk '/default/ {print \$3}')
+	  if [[ \"\$(grep ^ID= /etc/os-release | cut -d= -f2)\" == *\"centos\"* ]] || [[ \"\$(grep ^ID= /etc/os-release | cut -d= -f2)\" == *\"rhel\"* ]]; then
+	    dnf config-manager --set-disabled '*debug*' '*codeready*' '*source*'
+	    ip route replace default via \$(ip route show default | awk '/default/ {print \$3}')
+	  fi
       curl -o actions-runner-linux-x64-${runner_ver}.tar.gz -L https://github.com/actions/runner/releases/download/v${runner_ver}/actions-runner-linux-x64-${runner_ver}.tar.gz
       tar xzf ./actions-runner-linux-x64-${runner_ver}.tar.gz
       ./bin/installdependencies.sh && \\
