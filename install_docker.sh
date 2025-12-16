@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [[ "$(grep ^ID= /etc/os-release | cut -d= -f2)" == *"centos"* ]] || [[ "$(grep ^ID= /etc/os-release | cut -d= -f2)" == *"rhel"* ]]; then
-  ip route replace default via 10.128.0.1
+  dnf config-manager --set-disabled '*debug*' '*codeready*' '*source*'
  # Install dnf utils
   dnf -y install dnf-plugins-core
   dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
