@@ -28,6 +28,9 @@ inputs:
     description: GCE zone
     default: "us-east1-c"
     required: true
+  machine_zones:
+    description: Comma- or space-separated list of GCE zones to try in order when capacity is exhausted.
+    required: false
   machine_type:
     description: GCE machine type; https://cloud.google.com/compute/docs/machine-types
     default: "n1-standard-4"
@@ -123,6 +126,7 @@ runs:
         --service_account_key='${{ inputs.service_account_key }}'
         --runner_ver=${{ inputs.runner_ver }}
         --machine_zone=${{ inputs.machine_zone }}
+        --machine_zones='${{ inputs.machine_zones }}'
         --machine_type=${{ inputs.machine_type }}
         --network=${{ inputs.network }}
         --subnet=${{ inputs.subnet }}

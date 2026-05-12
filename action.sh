@@ -22,6 +22,7 @@ project_id=
 service_account_key=
 runner_ver=
 machine_zone=
+machine_zones=
 machine_type=
 boot_disk_type=
 disk_size=
@@ -50,6 +51,7 @@ while getopts_long :h opt \
   service_account_key required_argument \
   runner_ver required_argument \
   machine_zone required_argument \
+  machine_zones optional_argument \
   machine_type required_argument \
   boot_disk_type optional_argument \
   disk_size optional_argument \
@@ -89,6 +91,9 @@ do
       ;;
     machine_zone)
       machine_zone=$OPTLARG
+      ;;
+    machine_zones)
+      machine_zones=${OPTLARG-$machine_zones}
       ;;
     machine_type)
       machine_type=$OPTLARG
@@ -181,6 +186,14 @@ function start_vm {
   echo "✅ Successfully got the GitHub Runner registration token"
 
   VM_ID="gce-gh-${GITHUB_RUN_ID}-${GITHUB_RUN_NUMBER}-${RANDOM}"
+  zones=()
+  if [[ -n "${machine_zones}" ]]; then
+    machine_zones_normalized="${machine_zones//,/ }"
+    read -r -a zones <<< "${machine_zones_normalized}"
+  fi
+  if [[ ${#zones[@]} -eq 0 ]]; then
+    zones=("${machine_zone}")
+  fi
   service_account_flag=$([[ -z "${runner_service_account}" ]] || echo "--service-account=${runner_service_account}")
   image_project_flag=$([[ -z "${image_project}" ]] || echo "--image-project=${image_project}")
   image_flag=$([[ -z "${image}" ]] || echo "--image=${image}")
@@ -210,7 +223,7 @@ function start_vm {
 	cat <<-EOF > /etc/systemd/system/shutdown.sh
 	#!/bin/sh
 	sleep ${shutdown_timeout}
-	gcloud compute instances delete $VM_ID --zone=$machine_zone --quiet
+  gcloud compute instances delete $VM_ID --zone=__MACHINE_ZONE__ --quiet
 	EOF
  
 
@@ -227,15 +240,15 @@ function start_vm {
 	systemctl enable shutdown.service
 
 	# See: https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/running-scripts-before-or-after-a-job
-	chmod +x /etc/install_docker.sh && /etc/install_docker.sh && gcloud compute instances add-labels ${VM_ID} --zone=${machine_zone} --labels=gh_ready=0 && \\
+  chmod +x /etc/install_docker.sh && /etc/install_docker.sh && gcloud compute instances add-labels ${VM_ID} --zone=__MACHINE_ZONE__ --labels=gh_ready=0 && \\
 	RUNNER_ALLOW_RUNASROOT=1 ./config.sh --url https://github.com/${GITHUB_REPOSITORY} --token ${RUNNER_TOKEN} --labels ${runner_label} --unattended ${ephemeral_flag} --disableupdate && \\
 	./svc.sh install && \\
  	sed -i 's/ExecStart=\/actions-runner\/runsvc.sh/ExecStart=\/bin\/bash \/actions-runner\/runsvc.sh/g' /etc/systemd/system/\$(ls /etc/systemd/system/ | grep actions.runner.FalkorDB) && \\
 	systemctl daemon-reload && \\	
 	 ./svc.sh start && \\
-	gcloud compute instances add-labels ${VM_ID} --zone=${machine_zone} --labels=gh_ready=1
+  gcloud compute instances add-labels ${VM_ID} --zone=__MACHINE_ZONE__ --labels=gh_ready=1
 	# Kill after 12 hours
-	nohup sh -c \"sleep 6h && gcloud --quiet compute instances delete ${VM_ID} --zone=${machine_zone}\" > /dev/null &
+  nohup sh -c \"sleep 6h && gcloud --quiet compute instances delete ${VM_ID} --zone=__MACHINE_ZONE__\" > /dev/null &
   "
 
   if $actions_preinstalled ; then
@@ -298,29 +311,56 @@ function start_vm {
   gh_repo="$(truncate_to_label "${GITHUB_REPOSITORY##*/}")"
   gh_run_id="${GITHUB_RUN_ID}"
 
-  gcloud compute instances create ${VM_ID} \
-    --zone=${machine_zone} \
-    ${disk_size_flag} \
-    ${boot_disk_type_flag} \
-    --machine-type=${machine_type} \
-    --scopes=${scopes} \
-    ${service_account_flag} \
-    ${image_project_flag} \
-    ${image_flag} \
-    ${image_family_flag} \
-    ${preemptible_flag} \
-    ${no_external_address_flag} \
-    ${network_flag} \
-    ${subnet_flag} \
-    ${accelerator} \
-    ${maintenance_policy_flag} \
-    --labels=gh_ready=0,gh_repo_owner="${gh_repo_owner}",gh_repo="${gh_repo}",gh_run_id="${gh_run_id}",${runner_label}=1 \
-    --metadata=startup-script="$startup_script" \
-    && echo "runner_id=${VM_ID}" >> $GITHUB_OUTPUT && echo "runner_label=${runner_label}" >> $GITHUB_OUTPUT
+  created_zone=""
+  for zone in "${zones[@]}"; do
+    machine_zone="${zone}"
+
+    # Make sure cleanup hooks target the zone where the instance was created.
+    startup_script_zone="${startup_script//__MACHINE_ZONE__/${machine_zone}}"
+
+    if gcloud_output=$(gcloud compute instances create ${VM_ID} \
+      --zone=${machine_zone} \
+      ${disk_size_flag} \
+      ${boot_disk_type_flag} \
+      --machine-type=${machine_type} \
+      --scopes=${scopes} \
+      ${service_account_flag} \
+      ${image_project_flag} \
+      ${image_flag} \
+      ${image_family_flag} \
+      ${preemptible_flag} \
+      ${no_external_address_flag} \
+      ${network_flag} \
+      ${subnet_flag} \
+      ${accelerator} \
+      ${maintenance_policy_flag} \
+      --labels=gh_ready=0,gh_repo_owner="${gh_repo_owner}",gh_repo="${gh_repo}",gh_run_id="${gh_run_id}",${runner_label}=1 \
+      --metadata=startup-script="$startup_script_zone" 2>&1); then
+      created_zone="${machine_zone}"
+      echo "$gcloud_output"
+      echo "runner_id=${VM_ID}" >> $GITHUB_OUTPUT
+      echo "runner_label=${runner_label}" >> $GITHUB_OUTPUT
+      break
+    fi
+
+    echo "$gcloud_output" >&2
+    if [[ "$gcloud_output" == *"ZONE_RESOURCE_POOL_EXHAUSTED_WITH_DETAILS"* ]]; then
+      echo "Zone ${machine_zone} is exhausted. Trying next configured zone ..."
+      continue
+    fi
+
+    echo "Failed to create ${VM_ID} in zone ${machine_zone}." >&2
+    exit 1
+  done
+
+  if [[ -z "$created_zone" ]]; then
+    echo "Failed to create ${VM_ID} in all configured zones: ${zones[*]}" >&2
+    exit 1
+  fi
 
   safety_off
   while (( i++ < 84 )); do
-    GH_READY=$(gcloud compute instances describe ${VM_ID} --zone=${machine_zone} --format='json(labels)' | jq -r .labels.gh_ready)
+    GH_READY=$(gcloud compute instances describe ${VM_ID} --zone=${created_zone} --format='json(labels)' | jq -r .labels.gh_ready)
     if [[ $GH_READY == 1 ]]; then
       break
     fi
@@ -331,7 +371,7 @@ function start_vm {
     echo "✅ ${VM_ID} ready ..."
   else
     echo "Waited 7 minutes for ${VM_ID}, without luck, deleting ${VM_ID} ..."
-    gcloud --quiet compute instances delete ${VM_ID} --zone=${machine_zone}
+    gcloud --quiet compute instances delete ${VM_ID} --zone=${created_zone}
     exit 1
   fi
 }

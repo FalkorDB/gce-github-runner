@@ -38,6 +38,16 @@ jobs:
 
 See inputs and descriptions [here](./action.yml).
 
+To enable zone failover, set `machine_zones` to an ordered list (comma- or space-separated). The action will retry the next zone only when GCE returns `ZONE_RESOURCE_POOL_EXHAUSTED_WITH_DETAILS` during instance creation.
+
+Example:
+
+```yaml
+with:
+  machine_zone: us-east1-c
+  machine_zones: us-east1-c,us-east1-b,us-central1-a
+```
+
 The GCE runner image should have at least:
  * `gcloud`
  * `git`
