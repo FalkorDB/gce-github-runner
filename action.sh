@@ -208,6 +208,12 @@ function start_vm {
   # Omitted entirely unless requested: GCE rejects the flag on machine families
   # without vPMU support, which would fail creation for every existing caller.
   performance_monitoring_unit_flag=$([[ -z "${performance_monitoring_unit}" ]] || echo "--performance-monitoring-unit=${performance_monitoring_unit}")
+  # performanceMonitoringUnit is a beta-API field: the v1 surface rejects it
+  # regardless of machine family ("PerformanceMonitoringUnit is not supported
+  # for <machine-type> on API version v1"). Switch to the beta track only when
+  # the vPMU is actually requested, so every other caller keeps creating
+  # instances through v1 exactly as before.
+  gcloud_track=$([[ -z "${performance_monitoring_unit}" ]] && echo "" || echo "beta")
   preemptible_flag=$([[ "${preemptible}" == "true" ]] && echo "--preemptible" || echo "")
   ephemeral_flag=$([[ "${ephemeral}" == "true" ]] && echo "--ephemeral" || echo "")
   no_external_address_flag=$([[ "${no_external_address}" == "true" ]] && echo "--no-address" || echo "")
@@ -326,7 +332,7 @@ function start_vm {
     # Make sure cleanup hooks target the zone where the instance was created.
     startup_script_zone="${startup_script//__MACHINE_ZONE__/${machine_zone}}"
 
-    if gcloud_output=$(gcloud compute instances create ${VM_ID} \
+    if gcloud_output=$(gcloud ${gcloud_track} compute instances create ${VM_ID} \
       --zone=${machine_zone} \
       ${disk_size_flag} \
       ${boot_disk_type_flag} \
