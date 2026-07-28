@@ -25,6 +25,7 @@ machine_zone=
 machine_zones=
 machine_type=
 boot_disk_type=
+performance_monitoring_unit=
 disk_size=
 runner_service_account=
 runner_label=
@@ -54,6 +55,7 @@ while getopts_long :h opt \
   machine_zones optional_argument \
   machine_type required_argument \
   boot_disk_type optional_argument \
+  performance_monitoring_unit optional_argument \
   disk_size optional_argument \
   runner_service_account optional_argument \
   runner_label optional_argument \
@@ -100,6 +102,9 @@ do
       ;;
     boot_disk_type)
       boot_disk_type=${OPTLARG-$boot_disk_type}
+      ;;
+    performance_monitoring_unit)
+      performance_monitoring_unit=${OPTLARG-$performance_monitoring_unit}
       ;;
     disk_size)
       disk_size=${OPTLARG-$disk_size}
@@ -200,6 +205,9 @@ function start_vm {
   image_family_flag=$([[ -z "${image_family}" ]] || echo "--image-family=${image_family}")
   disk_size_flag=$([[ -z "${disk_size}" ]] || echo "--boot-disk-size=${disk_size}")
   boot_disk_type_flag=$([[ -z "${boot_disk_type}" ]] || echo "--boot-disk-type=${boot_disk_type}")
+  # Omitted entirely unless requested: GCE rejects the flag on machine families
+  # without vPMU support, which would fail creation for every existing caller.
+  performance_monitoring_unit_flag=$([[ -z "${performance_monitoring_unit}" ]] || echo "--performance-monitoring-unit=${performance_monitoring_unit}")
   preemptible_flag=$([[ "${preemptible}" == "true" ]] && echo "--preemptible" || echo "")
   ephemeral_flag=$([[ "${ephemeral}" == "true" ]] && echo "--ephemeral" || echo "")
   no_external_address_flag=$([[ "${no_external_address}" == "true" ]] && echo "--no-address" || echo "")
@@ -322,6 +330,7 @@ function start_vm {
       --zone=${machine_zone} \
       ${disk_size_flag} \
       ${boot_disk_type_flag} \
+    ${performance_monitoring_unit_flag} \
       --machine-type=${machine_type} \
       --scopes=${scopes} \
       ${service_account_flag} \
